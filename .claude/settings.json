@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(powershell.exe -Command \".specify/scripts/powershell/check-prerequisites.ps1 -Json\")",
+      "Bash(powershell.exe -Command \"if \\(Test-Path ''.specify/extensions.yml''\\) { Get-Content ''.specify/extensions.yml'' } else { Write-Output ''NOT_FOUND'' }\")",
+      "Bash(powershell.exe -Command \".specify/scripts/powershell/check-prerequisites.ps1 -Json -RequireTasks -IncludeTasks\")",
+      "Bash(node -e \"const crypto = require\\(''crypto''\\); console.log\\(crypto.randomBytes\\(32\\).toString\\(''hex''\\)\\)\")",
+      "Bash(npm view:*)",
+      "Bash(cd /tmp)",
+      "Bash(node -e \"const B = require\\(''/tmp/node_modules/business-days-js''\\); const b = new B\\(\\); console.log\\(typeof b.isBusinessDay, typeof b.countBusinessDays\\);\")",
+      "Bash(node -e \":*)",
+      "Bash(curl -s -X POST http://localhost:5000/api/auth/login -H \"Content-Type: application/json\" -d \"{\"\"email\"\":\"\"staff@neoconnect.com\"\",\"\"password\"\":\"\"Staff@123\"\"}\")",
+      "Bash(powershell -Command \"\\(Get-Content ''c:\\\\Users\\\\abrar\\\\OneDrive\\\\Desktop\\\\Neostat\\\\neo-connect\\\\backend\\\\src\\\\seeds\\\\seedData.js'' | Select-String -Pattern ''category'' | Select-Object -First 15\\).Line\")",
+      "Bash(npx shadcn-ui@latest add textarea skeleton alert radio-group avatar progress sheet checkbox switch dropdown-menu popover)",
+      "Bash(npx shadcn@latest add textarea skeleton alert radio-group avatar progress sheet checkbox switch dropdown-menu popover)",
+      "Bash(npx shadcn@latest add textarea skeleton alert radio-group avatar progress sheet checkbox switch dropdown-menu popover --overwrite)",
+      "Bash(node src/seeds/seedManagers.js)",
+      "Bash(DATABASE_URL=\"postgresql://neondb_owner:npg_xgtj4dpzOi6Y@ep-winter-boat-amy6w252-pooler.c-5.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require\" npx prisma@5 migrate deploy)",
+      "Bash(DATABASE_URL=\"postgresql://neondb_owner:npg_xgtj4dpzOi6Y@ep-winter-boat-amy6w252-pooler.c-5.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require\" node src/seeds/seedDepartments.js)",
+      "Bash(DATABASE_URL=\"postgresql://neondb_owner:npg_xgtj4dpzOi6Y@ep-winter-boat-amy6w252-pooler.c-5.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require\" node src/seeds/seedUsers.js)",
+      "Bash(DATABASE_URL=\"postgresql://neondb_owner:npg_xgtj4dpzOi6Y@ep-winter-boat-amy6w252-pooler.c-5.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require\" node src/seeds/seedManagers.js)",
+      "Bash(DATABASE_URL=\"postgresql://neondb_owner:npg_xgtj4dpzOi6Y@ep-winter-boat-amy6w252-pooler.c-5.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require\" node src/seeds/seedData.js)",
+      "Bash(DATABASE_URL=\"postgresql://neondb_owner:npg_xgtj4dpzOi6Y@ep-winter-boat-amy6w252-pooler.c-5.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require\" node -e \"const { PrismaClient } = require\\(''@prisma/client''\\); const p = new PrismaClient\\(\\); Promise.all\\([p.case.count\\(\\), p.user.count\\(\\), p.department.count\\(\\)]\\).then\\(\\([c,u,d]\\) => { console.log\\(''Cases:'', c, ''| Users:'', u, ''| Depts:'', d\\); p.$disconnect\\(\\); }\\)\")"
+    ],
+    "additionalDirectories": [
+      "C:\\Users\\abrar\\OneDrive\\Desktop\\Neostat\\neo-connect\\frontend\\src\\app\\cases"
+    ]
+  }
+}

@@ -1,0 +1,236 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  STAFF
+  SECRETARIAT
+  CASE_MANAGER
+  ADMIN
+}
+
+enum CaseCategory {
+  SAFETY
+  POLICY
+  FACILITIES
+  HR
+  OTHER
+}
+
+enum CaseSeverity {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum CaseStatus {
+  NEW
+  ASSIGNED
+  IN_PROGRESS
+  PENDING
+  RESOLVED
+  ESCALATED
+}
+
+enum NotificationType {
+  CASE_ASSIGNED
+  STATUS_UPDATED
+  ESCALATION_REMINDER
+  ESCALATION_ALERT
+  POLL_CREATED
+}
+
+model Department {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  users     User[]
+  cases     Case[]
+}
+
+model User {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  passwordHash String
+  fullName     String
+  role         Role      @default(STAFF)
+  departmentId String
+  isActive     Boolean   @default(true)
+  refreshToken String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  department         Department       @relation(fields: [departmentId], references: [id])
+  submittedCases     Case[]           @relation("SubmittedCases")
+  managedAssignments CaseAssignment[] @relation("ManagedAssignments")
+  givenAssignments   CaseAssignment[] @relation("GivenAssignments")
+  statusLogs         CaseStatusLog[]
+  notifications      Notification[]
+  votes              Vote[]
+  createdPolls       Poll[]
+  impactRecords      ImpactRecord[]
+  meetingMinutes     MeetingMinute[]
+}
+
+model Case {
+  id          String       @id @default(uuid())
+  trackingId  String       @unique
+  category    CaseCategory
+  departmentId String
+  location    String
+  severity    CaseSeverity
+  description String
+  isAnonymous Boolean      @default(false)
+  submitterId String?
+  status      CaseStatus   @default(NEW)
+  escalatedAt DateTime?
+  resolvedAt  DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  department    Department       @relation(fields: [departmentId], references: [id])
+  submitter     User?            @relation("SubmittedCases", fields: [submitterId], references: [id])
+  assignments   CaseAssignment[]
+  statusLogs    CaseStatusLog[]
+  notifications Notification[]
+  outboxEvents  OutboxEvent[]
+
+  @@index([status])
+  @@index([departmentId])
+  @@index([category])
+  @@index([submitterId])
+}
+
+model CaseAssignment {
+  id                  String    @id @default(uuid())
+  caseId              String
+  managerId           String
+  assignedById        String
+  assignedAt          DateTime  @default(now())
+  escalationDeadline  DateTime
+  escalationJobId     String?
+  isActive            Boolean   @default(true)
+
+  case       Case @relation(fields: [caseId], references: [id])
+  manager    User @relation("ManagedAssignments", fields: [managerId], references: [id])
+  assignedBy User @relation("GivenAssignments", fields: [assignedById], references: [id])
+
+  @@index([caseId])
+  @@index([managerId])
+}
+
+model CaseStatusLog {
+  id          String     @id @default(uuid())
+  caseId      String
+  fromStatus  CaseStatus
+  toStatus    CaseStatus
+  changedById String
+  note        String?
+  changedAt   DateTime   @default(now())
+
+  case      Case @relation(fields: [caseId], references: [id])
+  changedBy User @relation(fields: [changedById], references: [id])
+
+  @@index([caseId])
+}
+
+model Poll {
+  id          String    @id @default(uuid())
+  question    String
+  createdById String
+  isOpen      Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  closedAt    DateTime?
+
+  createdBy User         @relation(fields: [createdById], references: [id])
+  options   PollOption[]
+  votes     Vote[]
+}
+
+model PollOption {
+  id           String @id @default(uuid())
+  pollId       String
+  text         String
+  displayOrder Int    @default(0)
+
+  poll  Poll   @relation(fields: [pollId], references: [id])
+  votes Vote[]
+
+  @@index([pollId])
+}
+
+model Vote {
+  id       String   @id @default(uuid())
+  pollId   String
+  optionId String
+  userId   String
+  votedAt  DateTime @default(now())
+
+  poll   Poll       @relation(fields: [pollId], references: [id])
+  option PollOption @relation(fields: [optionId], references: [id])
+  user   User       @relation(fields: [userId], references: [id])
+
+  @@unique([pollId, userId])
+}
+
+model Notification {
+  id          String           @id @default(uuid())
+  recipientId String
+  type        NotificationType
+  caseId      String?
+  message     String
+  isRead      Boolean          @default(false)
+  createdAt   DateTime         @default(now())
+
+  recipient User  @relation(fields: [recipientId], references: [id])
+  case      Case? @relation(fields: [caseId], references: [id])
+
+  @@index([recipientId])
+  @@index([isRead])
+}
+
+model ImpactRecord {
+  id            String   @id @default(uuid())
+  issueRaised   String
+  actionTaken   String
+  outcomeChange String
+  quarter       String
+  createdById   String
+  createdAt     DateTime @default(now())
+
+  createdBy User @relation(fields: [createdById], references: [id])
+
+  @@index([quarter])
+}
+
+model MeetingMinute {
+  id           String   @id @default(uuid())
+  title        String
+  quarter      String
+  uploadedById String
+  storagePath  String
+  uploadedAt   DateTime @default(now())
+
+  uploadedBy User @relation(fields: [uploadedById], references: [id])
+
+  @@index([title])
+  @@index([quarter])
+}
+
+model OutboxEvent {
+  id          String    @id @default(uuid())
+  eventType   String
+  caseId      String?
+  payload     Json
+  processedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  case Case? @relation(fields: [caseId], references: [id])
+
+  @@index([processedAt])
+}

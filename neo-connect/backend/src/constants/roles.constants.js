@@ -1,0 +1,8 @@
+const ROLES = {
+  STAFF: 'STAFF',
+  SECRETARIAT: 'SECRETARIAT',
+  CASE_MANAGER: 'CASE_MANAGER',
+  ADMIN: 'ADMIN',
+};
+
+module.exports = { ROLES };
