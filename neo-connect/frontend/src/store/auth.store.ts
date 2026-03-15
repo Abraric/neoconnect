@@ -4,7 +4,7 @@ import type { User } from '@/types/user.types';
 interface AuthState {
   user: User | null;
   accessToken: string | null;
-  setAuth: (user: User, accessToken: string) => void;
+  setAuth: (_user: User, _accessToken: string) => void;
   clearAuth: () => void;
   isAuthenticated: () => boolean;
 }

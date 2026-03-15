@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, PlusCircle, FolderOpen, BarChart3,
-  Globe, Vote, Users, FileText,
+  Globe, Vote, Users,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';

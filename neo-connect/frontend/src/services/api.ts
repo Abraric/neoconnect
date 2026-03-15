@@ -22,7 +22,7 @@ api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
 
 // Response interceptor: handle 401 with token refresh
 let isRefreshing = false;
-let failedQueue: Array<{ resolve: (v: unknown) => void; reject: (e: unknown) => void }> = [];
+let failedQueue: Array<{ resolve: (_v: unknown) => void; reject: (_e: unknown) => void }> = [];
 
 const processQueue = (error: AxiosError | null, token: string | null = null) => {
   failedQueue.forEach(({ resolve, reject }) => {

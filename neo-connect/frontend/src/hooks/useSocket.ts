@@ -26,11 +26,11 @@ export function useSocket() {
     };
   }, [accessToken]);
 
-  const on = (event: string, callback: (...args: unknown[]) => void) => {
+  const on = (event: string, callback: (..._args: unknown[]) => void) => {
     socketRef.current?.on(event, callback);
   };
 
-  const off = (event: string, callback: (...args: unknown[]) => void) => {
+  const off = (event: string, callback: (..._args: unknown[]) => void) => {
     socketRef.current?.off(event, callback);
   };
 
