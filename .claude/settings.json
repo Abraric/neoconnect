@@ -20,7 +20,12 @@
       "Bash(DATABASE_URL=\"postgresql://neondb_owner:npg_xgtj4dpzOi6Y@ep-winter-boat-amy6w252-pooler.c-5.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require\" node src/seeds/seedUsers.js)",
       "Bash(DATABASE_URL=\"postgresql://neondb_owner:npg_xgtj4dpzOi6Y@ep-winter-boat-amy6w252-pooler.c-5.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require\" node src/seeds/seedManagers.js)",
       "Bash(DATABASE_URL=\"postgresql://neondb_owner:npg_xgtj4dpzOi6Y@ep-winter-boat-amy6w252-pooler.c-5.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require\" node src/seeds/seedData.js)",
-      "Bash(DATABASE_URL=\"postgresql://neondb_owner:npg_xgtj4dpzOi6Y@ep-winter-boat-amy6w252-pooler.c-5.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require\" node -e \"const { PrismaClient } = require\\(''@prisma/client''\\); const p = new PrismaClient\\(\\); Promise.all\\([p.case.count\\(\\), p.user.count\\(\\), p.department.count\\(\\)]\\).then\\(\\([c,u,d]\\) => { console.log\\(''Cases:'', c, ''| Users:'', u, ''| Depts:'', d\\); p.$disconnect\\(\\); }\\)\")"
+      "Bash(DATABASE_URL=\"postgresql://neondb_owner:npg_xgtj4dpzOi6Y@ep-winter-boat-amy6w252-pooler.c-5.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require\" node -e \"const { PrismaClient } = require\\(''@prisma/client''\\); const p = new PrismaClient\\(\\); Promise.all\\([p.case.count\\(\\), p.user.count\\(\\), p.department.count\\(\\)]\\).then\\(\\([c,u,d]\\) => { console.log\\(''Cases:'', c, ''| Users:'', u, ''| Depts:'', d\\); p.$disconnect\\(\\); }\\)\")",
+      "Bash(curl -s https://neoconnect-api-ghz4.onrender.com/health)",
+      "Bash(timeout /t 15 /nobreak)",
+      "Bash(curl -s https://neoconnect-api-ghz4.onrender.com/api/auth/login -X POST -H \"Content-Type: application/json\" -d \"{\"\"email\"\":\"\"admin@neoconnect.com\"\",\"\"password\"\":\"\"Admin@123\"\"}\")",
+      "Bash(curl -s --max-time 30 https://neoconnect-api-ghz4.onrender.com/health)",
+      "Bash(curl -s --max-time 15 https://neoconnect-api-ghz4.onrender.com/api/auth/login -X POST -H \"Content-Type: application/json\" -d \"{\"\"email\"\":\"\"admin@neoconnect.com\"\",\"\"password\"\":\"\"Admin@123\"\"}\")"
     ],
     "additionalDirectories": [
       "C:\\Users\\abrar\\OneDrive\\Desktop\\Neostat\\neo-connect\\frontend\\src\\app\\cases"
