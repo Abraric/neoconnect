@@ -19,6 +19,13 @@ const generateRefreshToken = (userId) => {
 
 const hashToken = (token) => crypto.createHash('sha256').update(token).digest('hex');
 
+const ROLE_OTP = {
+  ADMIN: '123456',
+  SECRETARIAT: '234567',
+  CASE_MANAGER: '345678',
+  STAFF: '456789',
+};
+
 const authService = {
   async login(email, password) {
     const user = await userRepository.findByEmail(email);
@@ -38,6 +45,84 @@ const authService = {
     if (!valid) {
       const err = new Error('Invalid credentials');
       err.code = 'INVALID_CREDENTIALS';
+      err.statusCode = 401;
+      throw err;
+    }
+    const accessToken = generateAccessToken(user);
+    const refreshToken = generateRefreshToken(user.id);
+    await userRepository.setRefreshToken(user.id, hashToken(refreshToken));
+    return {
+      accessToken,
+      refreshToken,
+      user: { id: user.id, fullName: user.fullName, email: user.email, role: user.role, departmentId: user.departmentId },
+    };
+  },
+
+  async loginStep1(email, password) {
+    const user = await userRepository.findByEmail(email);
+    if (!user) {
+      const err = new Error('Invalid credentials');
+      err.code = 'INVALID_CREDENTIALS';
+      err.statusCode = 401;
+      throw err;
+    }
+    if (!user.isActive) {
+      const err = new Error('Account has been deactivated');
+      err.code = 'ACCOUNT_DEACTIVATED';
+      err.statusCode = 403;
+      throw err;
+    }
+    const valid = await bcrypt.compare(password, user.passwordHash);
+    if (!valid) {
+      const err = new Error('Invalid credentials');
+      err.code = 'INVALID_CREDENTIALS';
+      err.statusCode = 401;
+      throw err;
+    }
+    const tempToken = jwt.sign(
+      { sub: user.id, role: user.role, type: 'otp' },
+      process.env.JWT_SECRET,
+      { expiresIn: '5m' }
+    );
+    return {
+      tempToken,
+      user: { id: user.id, fullName: user.fullName, role: user.role },
+    };
+  },
+
+  async loginStep2(tempToken, otp) {
+    if (!tempToken) {
+      const err = new Error('Temp token missing');
+      err.code = 'TEMP_TOKEN_MISSING';
+      err.statusCode = 401;
+      throw err;
+    }
+    let payload;
+    try {
+      payload = jwt.verify(tempToken, process.env.JWT_SECRET);
+    } catch (e) {
+      const err = new Error(e.name === 'TokenExpiredError' ? 'OTP session expired' : 'Invalid temp token');
+      err.code = 'TEMP_TOKEN_INVALID';
+      err.statusCode = 401;
+      throw err;
+    }
+    if (payload.type !== 'otp') {
+      const err = new Error('Invalid temp token');
+      err.code = 'TEMP_TOKEN_INVALID';
+      err.statusCode = 401;
+      throw err;
+    }
+    const expectedOtp = ROLE_OTP[payload.role];
+    if (!expectedOtp || otp !== expectedOtp) {
+      const err = new Error('Invalid OTP');
+      err.code = 'INVALID_OTP';
+      err.statusCode = 401;
+      throw err;
+    }
+    const user = await userRepository.findById(payload.sub);
+    if (!user || !user.isActive) {
+      const err = new Error('User not found or deactivated');
+      err.code = 'USER_NOT_FOUND';
       err.statusCode = 401;
       throw err;
     }

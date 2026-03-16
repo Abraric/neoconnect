@@ -14,6 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import AppShell from '@/components/AppShell';
 
 const CATEGORIES = ['SAFETY', 'POLICY', 'FACILITIES', 'HR', 'OTHER'] as const;
 const SEVERITIES = ['LOW', 'MEDIUM', 'HIGH'] as const;
@@ -109,7 +110,8 @@ export default function SubmitCasePage() {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <AppShell>
+      <div className="flex items-center justify-center p-4">
         <Card className="w-full max-w-md text-center">
           <CardHeader>
             <CardTitle className="text-green-600">Case Submitted</CardTitle>
@@ -130,11 +132,13 @@ export default function SubmitCasePage() {
           </CardContent>
         </Card>
       </div>
+      </AppShell>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background py-8 px-4">
+    <AppShell>
+    <div className="py-2 px-4">
       <div className="max-w-2xl mx-auto">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-foreground">Submit a Case</h1>
@@ -269,5 +273,6 @@ export default function SubmitCasePage() {
         </Card>
       </div>
     </div>
+    </AppShell>
   );
 }

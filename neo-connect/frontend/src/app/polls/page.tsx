@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import AppShell from '@/components/AppShell';
 
 export default function PollsPage() {
   const [polls, setPolls] = useState<Poll[]>([]);
@@ -117,7 +118,8 @@ export default function PollsPage() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto py-8 px-4">
+    <AppShell>
+    <div className="max-w-2xl mx-auto space-y-4">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Polls</h1>
         {user?.role === 'SECRETARIAT' && (
@@ -204,5 +206,6 @@ export default function PollsPage() {
         />
       ))}
     </div>
+    </AppShell>
   );
 }

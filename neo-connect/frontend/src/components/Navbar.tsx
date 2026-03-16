@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Bell, LogOut, User } from 'lucide-react';
+import { Bell, LogOut, Moon, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
@@ -15,12 +15,14 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { useSocket } from '@/hooks/useSocket';
 import api from '@/services/api';
+import { useTheme } from '@/components/ThemeProvider';
 
 export default function Navbar() {
   const { user, logout } = useAuth();
   const router = useRouter();
   const { on, off } = useSocket();
   const [unreadCount, setUnreadCount] = useState(0);
+  const { theme, toggleTheme } = useTheme();
 
   const roleColor: Record<string, string> = {
     STAFF: 'bg-gray-100 text-gray-700',
@@ -60,6 +62,14 @@ export default function Navbar() {
         </div>
 
         <div className="flex items-center gap-3">
+          <button
+            onClick={toggleTheme}
+            className="p-2 rounded-md hover:bg-muted transition-colors"
+            aria-label="Toggle theme"
+          >
+            {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          </button>
+
           <Button
             variant="ghost"
             size="icon"

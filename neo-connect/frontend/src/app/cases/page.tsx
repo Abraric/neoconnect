@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ROLES, CASE_STATUS } from '@/utils/constants';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import AppShell from '@/components/AppShell';
 
 const CATEGORIES = ['SAFETY', 'POLICY', 'FACILITIES', 'HR', 'OTHER'];
 const SEVERITIES = ['LOW', 'MEDIUM', 'HIGH'];
@@ -61,7 +62,7 @@ export default function CasesPage() {
   const totalPages = result ? Math.ceil(result.pagination.total / PAGE_SIZE) : 0;
 
   return (
-    <div className="min-h-screen bg-background py-8 px-4">
+    <AppShell>
       <div className="max-w-4xl mx-auto space-y-6">
 
         <div className="flex items-center justify-between flex-wrap gap-3">
@@ -206,6 +207,6 @@ export default function CasesPage() {
         )}
 
       </div>
-    </div>
+    </AppShell>
   );
 }

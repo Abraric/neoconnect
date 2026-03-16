@@ -15,6 +15,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { ROLES } from '../../utils/constants';
 import type { Role } from '../../types/user.types';
+import AppShell from '@/components/AppShell';
 
 interface AdminUser {
   id: string;
@@ -144,7 +145,8 @@ export default function AdminPage() {
   const deptName = (id: string) => departments.find(d => d.id === id)?.name ?? '—';
 
   return (
-    <div className="max-w-6xl mx-auto py-8 px-4">
+    <AppShell>
+    <div className="max-w-6xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">User Management</h1>
 
@@ -306,5 +308,6 @@ export default function AdminPage() {
         </Table>
       </div>
     </div>
+    </AppShell>
   );
 }

@@ -8,6 +8,7 @@ const { loginSchema } = require('../validators/auth.validator');
 const router = Router();
 
 router.post('/login', authLimiter, validate(loginSchema), authController.login);
+router.post('/verify-otp', authController.verifyOtp);
 router.post('/refresh', authController.refresh);
 router.post('/logout', authenticate, authController.logout);
 

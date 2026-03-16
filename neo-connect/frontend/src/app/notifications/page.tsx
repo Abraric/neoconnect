@@ -10,6 +10,7 @@ import { Badge } from '../../components/ui/badge';
 import { Skeleton } from '../../components/ui/skeleton';
 import { Alert, AlertDescription } from '../../components/ui/alert';
 import { timeAgo } from '../../utils/formatDate';
+import AppShell from '@/components/AppShell';
 
 interface Notification {
   id: string;
@@ -93,7 +94,8 @@ export default function NotificationsPage() {
   const totalPages = Math.ceil(total / limit);
 
   return (
-    <div className="max-w-2xl mx-auto py-8 px-4">
+    <AppShell>
+    <div className="max-w-2xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Notifications</h1>
         {unreadCount > 0 && (
@@ -179,5 +181,6 @@ export default function NotificationsPage() {
         </div>
       )}
     </div>
+    </AppShell>
   );
 }

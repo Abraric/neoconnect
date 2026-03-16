@@ -7,6 +7,7 @@ import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Card, CardContent } from '../../components/ui/card';
 import { formatDate } from '../../utils/formatDate';
+import AppShell from '@/components/AppShell';
 
 type Tab = 'digest' | 'impact' | 'minutes';
 
@@ -116,7 +117,8 @@ export default function PublicHubPage() {
   ];
 
   return (
-    <div className="max-w-5xl mx-auto py-8 px-4">
+    <AppShell>
+    <div className="max-w-5xl mx-auto">
       <h1 className="text-2xl font-bold mb-6">Public Hub</h1>
 
       {/* Tab Bar */}
@@ -316,5 +318,6 @@ export default function PublicHubPage() {
         </div>
       )}
     </div>
+    </AppShell>
   );
 }

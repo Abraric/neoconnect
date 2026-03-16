@@ -9,6 +9,7 @@ import { Card, CardContent } from '../../components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { CASE_STATUS } from '../../utils/constants';
+import AppShell from '@/components/AppShell';
 
 const STAT_STATUS_KEYS = [
   CASE_STATUS.NEW,
@@ -46,22 +47,27 @@ export default function AnalyticsPage() {
 
   if (loading) {
     return (
-      <div className="max-w-6xl mx-auto py-12 px-4">
-        <p className="text-gray-500 text-sm">Loading analytics…</p>
-      </div>
+      <AppShell>
+        <div className="max-w-6xl mx-auto py-12 px-4">
+          <p className="text-gray-500 text-sm">Loading analytics…</p>
+        </div>
+      </AppShell>
     );
   }
 
   if (error || !data) {
     return (
-      <div className="max-w-6xl mx-auto py-12 px-4">
-        <p className="text-red-500 text-sm">{error || 'No data available.'}</p>
-      </div>
+      <AppShell>
+        <div className="max-w-6xl mx-auto py-12 px-4">
+          <p className="text-red-500 text-sm">{error || 'No data available.'}</p>
+        </div>
+      </AppShell>
     );
   }
 
   return (
-    <div className="max-w-6xl mx-auto py-8 px-4 space-y-8">
+    <AppShell>
+    <div className="max-w-6xl mx-auto space-y-8">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Analytics Dashboard</h1>
         <p className="text-xs text-gray-400">
@@ -128,5 +134,6 @@ export default function AnalyticsPage() {
         </div>
       )}
     </div>
+    </AppShell>
   );
 }

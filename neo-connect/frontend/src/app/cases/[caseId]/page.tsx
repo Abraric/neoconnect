@@ -21,6 +21,7 @@ import { STATUS_COLORS, SEVERITY_COLORS, ROLES } from '@/utils/constants';
 import { formatDate, formatDateTime } from '@/utils/formatDate';
 import { cn } from '@/lib/utils';
 import api from '@/services/api';
+import AppShell from '@/components/AppShell';
 
 const MANAGER_UPDATABLE_STATUSES = ['IN_PROGRESS', 'PENDING', 'RESOLVED'];
 
@@ -131,19 +132,19 @@ export default function CaseDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background py-8 px-4">
+      <AppShell>
         <div className="max-w-3xl mx-auto space-y-4">
           <Skeleton className="h-8 w-32" />
           <Skeleton className="h-64 rounded-lg" />
           <Skeleton className="h-40 rounded-lg" />
         </div>
-      </div>
+      </AppShell>
     );
   }
 
   if (error || !caseDetail) {
     return (
-      <div className="min-h-screen bg-background py-8 px-4">
+      <AppShell>
         <div className="max-w-3xl mx-auto space-y-4">
           <Button variant="outline" size="sm" onClick={() => router.back()}>
             &larr; Back
@@ -152,7 +153,7 @@ export default function CaseDetailPage() {
             <AlertDescription>{error || 'Case not found.'}</AlertDescription>
           </Alert>
         </div>
-      </div>
+      </AppShell>
     );
   }
 
@@ -161,7 +162,7 @@ export default function CaseDetailPage() {
   const apiBase = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5000/api';
 
   return (
-    <div className="min-h-screen bg-background py-8 px-4">
+    <AppShell>
       <div className="max-w-3xl mx-auto space-y-6">
 
         <Button variant="outline" size="sm" onClick={() => router.push('/cases')}>
@@ -383,6 +384,6 @@ export default function CaseDetailPage() {
         </Card>
 
       </div>
-    </div>
+    </AppShell>
   );
 }
