@@ -70,6 +70,26 @@ export default function CaseDetailPage() {
   const [ratingFeedback, setRatingFeedback] = useState('');
   const [submittingRating, setSubmittingRating] = useState(false);
 
+  // Case Manager features
+  const [internalNotes, setInternalNotes] = useState<Array<{_id: string; authorName: string; authorRole: string; content: string; createdAt: string}>>([]);
+  const [noteText, setNoteText] = useState('');
+  const [submittingNote, setSubmittingNote] = useState(false);
+
+  const [requestInfoMsg, setRequestInfoMsg] = useState('');
+  const [requestInfoOpen, setRequestInfoOpen] = useState(false);
+  const [sendingInfoRequest, setSendingInfoRequest] = useState(false);
+
+  const [reassignOpen, setReassignOpen] = useState(false);
+  const [reassignManagerId, setReassignManagerId] = useState('');
+  const [reassignReason, setReassignReason] = useState('');
+  const [reassigning, setReassigning] = useState(false);
+  const [allManagers, setAllManagers] = useState<User[]>([]);
+
+  const [reminderOpen, setReminderOpen] = useState(false);
+  const [reminderDate, setReminderDate] = useState('');
+  const [reminderNote, setReminderNote] = useState('');
+  const [settingReminder, setSettingReminder] = useState(false);
+
   const isSecretariat = user?.role === ROLES.SECRETARIAT;
   const isCaseManager = user?.role === ROLES.CASE_MANAGER;
   const isAssignedManager = isCaseManager && caseDetail?.assignment?.managerId === user?.id;
@@ -99,6 +119,22 @@ export default function CaseDetailPage() {
       .then(res => setComments(res.data.data ?? []))
       .catch(() => {});
   }, [caseId]);
+
+  // Case Manager: Load internal notes
+  useEffect(() => {
+    if (!caseId || isStaff) return;
+    api.get(`/cases/${caseId}/internal-notes`)
+      .then(res => setInternalNotes(res.data.data ?? []))
+      .catch(() => {});
+  }, [caseId, isStaff]);
+
+  // Case Manager: Load all managers for reassign
+  useEffect(() => {
+    if (!isCaseManager && !isSecretariat && user?.role !== 'ADMIN') return;
+    api.get('/users/case-managers')
+      .then(res => setAllManagers(res.data.data ?? []))
+      .catch(() => {});
+  }, [isCaseManager, isSecretariat, user?.role]);
 
   const loadCase = async () => {
     setLoading(true);
@@ -193,6 +229,75 @@ export default function CaseDetailPage() {
       toast({ title: 'Failed to add comment', variant: 'destructive' });
     } finally {
       setSubmittingComment(false);
+    }
+  };
+
+  // Case Manager: Add internal note
+  const handleAddNote = async () => {
+    if (!noteText.trim()) return;
+    setSubmittingNote(true);
+    try {
+      const res = await api.post(`/cases/${caseId}/internal-notes`, { content: noteText.trim() });
+      setInternalNotes(prev => [...prev, res.data.data]);
+      setNoteText('');
+      toast({ title: 'Note added' });
+    } catch {
+      toast({ title: 'Failed to add note', variant: 'destructive' });
+    } finally {
+      setSubmittingNote(false);
+    }
+  };
+
+  // Case Manager: Request more info
+  const handleRequestInfo = async () => {
+    if (!requestInfoMsg.trim()) return;
+    setSendingInfoRequest(true);
+    try {
+      await api.post(`/cases/${caseId}/request-info`, { message: requestInfoMsg.trim() });
+      toast({ title: 'Request sent', description: 'The submitter has been notified.' });
+      setRequestInfoOpen(false);
+      setRequestInfoMsg('');
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { message?: string } } };
+      toast({ title: 'Failed', description: axiosErr?.response?.data?.message ?? 'Could not send request.', variant: 'destructive' });
+    } finally {
+      setSendingInfoRequest(false);
+    }
+  };
+
+  // Case Manager: Reassign
+  const handleReassign = async () => {
+    if (!reassignManagerId) return;
+    setReassigning(true);
+    try {
+      await api.patch(`/cases/${caseId}/reassign`, { newManagerId: reassignManagerId, reason: reassignReason.trim() });
+      toast({ title: 'Case reassigned' });
+      setReassignOpen(false);
+      setReassignManagerId('');
+      setReassignReason('');
+      await loadCase();
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { message?: string } } };
+      toast({ title: 'Failed', description: axiosErr?.response?.data?.message ?? 'Could not reassign.', variant: 'destructive' });
+    } finally {
+      setReassigning(false);
+    }
+  };
+
+  // Case Manager: Set reminder
+  const handleSetReminder = async () => {
+    if (!reminderDate) return;
+    setSettingReminder(true);
+    try {
+      await api.post(`/cases/${caseId}/reminders`, { remindAt: reminderDate, note: reminderNote.trim() });
+      toast({ title: 'Reminder set', description: `You will be reminded on ${new Date(reminderDate).toLocaleDateString()}.` });
+      setReminderOpen(false);
+      setReminderDate('');
+      setReminderNote('');
+    } catch {
+      toast({ title: 'Failed to set reminder', variant: 'destructive' });
+    } finally {
+      setSettingReminder(false);
     }
   };
 
@@ -500,6 +605,148 @@ export default function CaseDetailPage() {
               <Button onClick={handleStatusUpdate} disabled={updatingStatus}>
                 {updatingStatus ? 'Saving…' : 'Save Status'}
               </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Case Manager Actions */}
+        {(isCaseManager || isSecretariat || user?.role === 'ADMIN') && (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Case Manager Actions</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-wrap gap-2">
+              {/* Request More Info */}
+              {!caseDetail.isAnonymous && (
+                <Dialog open={requestInfoOpen} onOpenChange={setRequestInfoOpen}>
+                  <DialogTrigger asChild>
+                    <Button size="sm" variant="outline">Request Info</Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader><DialogTitle>Request More Information</DialogTitle></DialogHeader>
+                    <div className="space-y-3 py-2">
+                      <p className="text-sm text-muted-foreground">Send a message to the submitter asking for more details.</p>
+                      <Textarea
+                        rows={3}
+                        placeholder="What information do you need?"
+                        value={requestInfoMsg}
+                        onChange={e => setRequestInfoMsg(e.target.value)}
+                      />
+                    </div>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setRequestInfoOpen(false)}>Cancel</Button>
+                      <Button onClick={handleRequestInfo} disabled={sendingInfoRequest || !requestInfoMsg.trim()}>
+                        {sendingInfoRequest ? 'Sending…' : 'Send Request'}
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              )}
+
+              {/* Reassign */}
+              <Dialog open={reassignOpen} onOpenChange={open => { setReassignOpen(open); if (!open) { setReassignManagerId(''); setReassignReason(''); } }}>
+                <DialogTrigger asChild>
+                  <Button size="sm" variant="outline">Reassign</Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader><DialogTitle>Reassign Case</DialogTitle></DialogHeader>
+                  <div className="space-y-3 py-2">
+                    <Select value={reassignManagerId} onValueChange={setReassignManagerId}>
+                      <SelectTrigger><SelectValue placeholder="Select new manager…" /></SelectTrigger>
+                      <SelectContent>
+                        {allManagers.filter(m => m.id !== user?.id).map(m => (
+                          <SelectItem key={m.id} value={m.id}>{m.fullName}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Textarea
+                      rows={2}
+                      placeholder="Reason for reassignment (optional)"
+                      value={reassignReason}
+                      onChange={e => setReassignReason(e.target.value)}
+                    />
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setReassignOpen(false)}>Cancel</Button>
+                    <Button onClick={handleReassign} disabled={reassigning || !reassignManagerId}>
+                      {reassigning ? 'Reassigning…' : 'Reassign'}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+
+              {/* Set Reminder (Case Manager only) */}
+              {isCaseManager && (
+                <Dialog open={reminderOpen} onOpenChange={setReminderOpen}>
+                  <DialogTrigger asChild>
+                    <Button size="sm" variant="outline">Set Reminder</Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader><DialogTitle>Set Follow-up Reminder</DialogTitle></DialogHeader>
+                    <div className="space-y-3 py-2">
+                      <div className="space-y-1.5">
+                        <Label>Remind me on</Label>
+                        <input
+                          type="datetime-local"
+                          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                          value={reminderDate}
+                          onChange={e => setReminderDate(e.target.value)}
+                          min={new Date().toISOString().slice(0, 16)}
+                        />
+                      </div>
+                      <Textarea
+                        rows={2}
+                        placeholder="Reminder note (optional)"
+                        value={reminderNote}
+                        onChange={e => setReminderNote(e.target.value)}
+                      />
+                    </div>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setReminderOpen(false)}>Cancel</Button>
+                      <Button onClick={handleSetReminder} disabled={settingReminder || !reminderDate}>
+                        {settingReminder ? 'Saving…' : 'Save Reminder'}
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Internal Notes — visible to managers/secretariat/admin only */}
+        {(isCaseManager || isSecretariat || user?.role === 'ADMIN') && (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Internal Notes ({internalNotes.length})</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-xs text-muted-foreground">Only visible to Case Managers, Secretariat, and Admins.</p>
+              {internalNotes.length === 0 && (
+                <p className="text-sm text-muted-foreground">No internal notes yet.</p>
+              )}
+              {internalNotes.map(n => (
+                <div key={n._id} className="border border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-900 rounded-lg p-3 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">{n.authorName}</span>
+                    <span className="text-xs text-muted-foreground">{formatDateTime(n.createdAt)}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">{n.authorRole.replace('_', ' ')}</p>
+                  <p className="text-sm">{n.content}</p>
+                </div>
+              ))}
+              <div className="space-y-2 border-t pt-3">
+                <Textarea
+                  placeholder="Add an internal note…"
+                  value={noteText}
+                  onChange={e => setNoteText(e.target.value)}
+                  rows={2}
+                  className="resize-none"
+                />
+                <Button size="sm" onClick={handleAddNote} disabled={submittingNote || !noteText.trim()}>
+                  {submittingNote ? 'Saving…' : 'Add Note'}
+                </Button>
+              </div>
             </CardContent>
           </Card>
         )}
