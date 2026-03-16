@@ -87,7 +87,8 @@
   /* Sidebar nav item animations */
   .nav-item-active {
     background: linear-gradient(90deg, hsl(243 75% 59% / 0.12) 0%, hsl(243 75% 59% / 0.04) 100%);
-    @apply text-primary border-l-[3px] border-primary;
+    color: hsl(var(--primary));
+    border-left: 3px solid hsl(var(--primary));
   }
 
   /* Fade-in animation */

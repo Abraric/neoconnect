@@ -18,18 +18,19 @@ interface CaseSummary { byStatus: Record<string, number>; total: number; }
 
 const STATUS_OPEN = ['NEW', 'ASSIGNED', 'IN_PROGRESS', 'PENDING'];
 
-function getGreeting() {
-  const h = new Date().getHours();
-  if (h < 12) return 'Good morning';
-  if (h < 17) return 'Good afternoon';
-  return 'Good evening';
-}
-
 export default function DashboardPage() {
   const { user, hasRole, isAuthenticated } = useAuth();
   const router = useRouter();
   const [summary, setSummary] = useState<CaseSummary | null>(null);
   const [loadingStats, setLoadingStats] = useState(true);
+  const [greeting, setGreeting] = useState('');
+
+  useEffect(() => {
+    const h = new Date().getHours();
+    if (h < 12) setGreeting('Good morning');
+    else if (h < 17) setGreeting('Good afternoon');
+    else setGreeting('Good evening');
+  }, []);
 
   useEffect(() => {
     if (!isAuthenticated) { router.replace('/login'); return; }
@@ -146,7 +147,7 @@ export default function DashboardPage() {
         {/* Header */}
         <div className="flex items-start justify-between flex-wrap gap-4">
           <div>
-            <p className="text-sm font-medium text-muted-foreground">{getGreeting()},</p>
+            <p className="text-sm font-medium text-muted-foreground">{greeting},</p>
             <h1 className="text-3xl font-extrabold text-foreground mt-0.5">
               {firstName} 👋
             </h1>

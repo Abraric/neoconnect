@@ -1,8 +1,8 @@
 'use client';
 import { useEffect, useState, useRef, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth.store';
-import { LineChart, Line, Tooltip, ResponsiveContainer } from 'recharts';
 import { RefreshCw, Wifi, WifiOff, Database, Server, Shield, Activity } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import AppShell from '@/components/AppShell';
@@ -44,22 +44,11 @@ function LatencyBadge({ ms }: { ms: number | null }) {
   return <span className={`text-sm font-bold tabular-nums ${color}`}>{ms}<span className="text-xs font-normal text-muted-foreground ml-0.5">ms</span></span>;
 }
 
+const SparklineChart = dynamic(() => import('./SparklineChart'), { ssr: false, loading: () => <div className="h-10" /> });
+
 function Sparkline({ data, dataKey }: { data: HistoryPoint[]; dataKey: keyof HistoryPoint }) {
   if (data.length < 2) return <div className="h-10 flex items-center justify-center text-xs text-muted-foreground/50">collecting…</div>;
-  return (
-    <ResponsiveContainer width="100%" height={40}>
-      <LineChart data={data}>
-        <Line type="monotone" dataKey={dataKey} stroke="hsl(var(--primary))" strokeWidth={1.5} dot={false} isAnimationActive={false} connectNulls />
-        <Tooltip
-          content={({ active, payload }) =>
-            active && payload?.[0]?.value != null
-              ? <div className="bg-popover border rounded px-2 py-1 text-xs shadow">{payload[0].value}ms</div>
-              : null
-          }
-        />
-      </LineChart>
-    </ResponsiveContainer>
-  );
+  return <SparklineChart data={data} dataKey={dataKey} />;
 }
 
 function ServiceCard({
