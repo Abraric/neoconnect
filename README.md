@@ -232,4 +232,4 @@ Neostat/
 ## Author
 
 **Syed Abrar C**
-Built for Neostat — 2025
+Built for Neostat — 2026
