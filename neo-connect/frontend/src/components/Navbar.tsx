@@ -25,10 +25,10 @@ export default function Navbar() {
   const { theme, toggleTheme } = useTheme();
 
   const roleColor: Record<string, string> = {
-    STAFF: 'bg-gray-100 text-gray-700',
-    SECRETARIAT: 'bg-blue-100 text-blue-700',
-    CASE_MANAGER: 'bg-purple-100 text-purple-700',
-    ADMIN: 'bg-red-100 text-red-700',
+    STAFF: 'bg-muted text-muted-foreground',
+    SECRETARIAT: 'bg-blue-500/20 text-blue-400',
+    CASE_MANAGER: 'bg-purple-500/20 text-purple-400',
+    ADMIN: 'bg-red-500/20 text-red-400',
   };
 
   const initials = user?.fullName
@@ -52,13 +52,13 @@ export default function Navbar() {
   }, [on, off]);
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-white shadow-sm">
+    <header className="sticky top-0 z-50 w-full border-b bg-background shadow-sm">
       <div className="flex h-16 items-center justify-between px-6">
         <div className="flex items-center gap-3">
           <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center">
             <span className="text-white font-bold text-sm">N</span>
           </div>
-          <span className="text-xl font-bold text-gray-900">NeoConnect</span>
+          <span className="text-xl font-bold text-foreground">NeoConnect</span>
         </div>
 
         <div className="flex items-center gap-3">

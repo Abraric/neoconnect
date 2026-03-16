@@ -35,7 +35,7 @@ export default function Sidebar() {
   );
 
   return (
-    <aside className="w-56 shrink-0 border-r bg-white min-h-screen flex flex-col">
+    <aside className="w-56 shrink-0 border-r bg-background min-h-screen flex flex-col">
       <nav className="flex flex-col gap-1 p-4 flex-1">
         {visible.map((item) => (
           <Link
@@ -45,7 +45,7 @@ export default function Sidebar() {
               'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
               pathname === item.href || pathname.startsWith(item.href + '/')
                 ? 'bg-primary text-white'
-                : 'text-gray-700 hover:bg-gray-100'
+                : 'text-foreground hover:bg-muted'
             )}
           >
             {item.icon}
@@ -54,9 +54,9 @@ export default function Sidebar() {
         ))}
       </nav>
       <div className="p-4 border-t">
-        <p className="text-xs text-gray-400 leading-snug">
+        <p className="text-xs text-muted-foreground leading-snug">
           Built by<br />
-          <span className="font-medium text-gray-500">Syed Abrar C</span>
+          <span className="font-medium text-foreground">Syed Abrar C</span>
         </p>
       </div>
     </aside>
