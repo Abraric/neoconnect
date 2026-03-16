@@ -25,7 +25,8 @@
       "Bash(timeout /t 15 /nobreak)",
       "Bash(curl -s https://neoconnect-api-ghz4.onrender.com/api/auth/login -X POST -H \"Content-Type: application/json\" -d \"{\"\"email\"\":\"\"admin@neoconnect.com\"\",\"\"password\"\":\"\"Admin@123\"\"}\")",
       "Bash(curl -s --max-time 30 https://neoconnect-api-ghz4.onrender.com/health)",
-      "Bash(curl -s --max-time 15 https://neoconnect-api-ghz4.onrender.com/api/auth/login -X POST -H \"Content-Type: application/json\" -d \"{\"\"email\"\":\"\"admin@neoconnect.com\"\",\"\"password\"\":\"\"Admin@123\"\"}\")"
+      "Bash(curl -s --max-time 15 https://neoconnect-api-ghz4.onrender.com/api/auth/login -X POST -H \"Content-Type: application/json\" -d \"{\"\"email\"\":\"\"admin@neoconnect.com\"\",\"\"password\"\":\"\"Admin@123\"\"}\")",
+      "Bash(npx prisma:*)"
     ],
     "additionalDirectories": [
       "C:\\Users\\abrar\\OneDrive\\Desktop\\Neostat\\neo-connect\\frontend\\src\\app\\cases"

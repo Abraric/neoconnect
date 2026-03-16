@@ -18,5 +18,10 @@ router.get('/:caseId', caseController.getById);
 router.patch('/:caseId/assign', requireRole(ROLES.SECRETARIAT, ROLES.ADMIN), validate(assignCaseSchema), caseController.assign);
 router.patch('/:caseId/status', requireRole(ROLES.CASE_MANAGER), validate(updateStatusSchema), caseController.updateStatus);
 router.get('/:caseId/attachments/:attachmentId', requireRole(ROLES.SECRETARIAT, ROLES.CASE_MANAGER, ROLES.ADMIN), caseController.downloadAttachment);
+router.patch('/:caseId/withdraw', requireRole(ROLES.STAFF), caseController.withdraw);
+router.get('/:caseId/comments', caseController.getComments);
+router.post('/:caseId/comments', caseController.addComment);
+router.get('/:caseId/rating', caseController.getRating);
+router.post('/:caseId/rating', requireRole(ROLES.STAFF), caseController.submitRating);
 
 module.exports = router;

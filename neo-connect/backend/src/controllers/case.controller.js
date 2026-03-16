@@ -131,6 +131,88 @@ const caseController = {
     } catch (err) { return next(err); }
   },
 
+  async withdraw(req, res, next) {
+    try {
+      const { PrismaClient } = require('@prisma/client');
+      const prisma = new PrismaClient();
+      const caseRecord = await caseRepository.findById(req.params.caseId);
+      if (!caseRecord) return sendError(res, 'CASE_NOT_FOUND', 'Case not found', 404);
+      if (caseRecord.submitterId !== req.user.id) return sendError(res, 'FORBIDDEN', 'You can only withdraw your own cases', 403);
+      if (caseRecord.status !== 'NEW') return sendError(res, 'INVALID_STATE', 'Only NEW cases can be withdrawn', 422);
+      await prisma.case.update({ where: { id: req.params.caseId }, data: { withdrawnAt: new Date() } });
+      await prisma.$disconnect();
+      return sendSuccess(res, { message: 'Case withdrawn successfully' });
+    } catch (err) { return next(err); }
+  },
+
+  async getComments(req, res, next) {
+    try {
+      const CaseComment = require('../models/mongo/caseComment.schema');
+      const caseRecord = await caseRepository.findById(req.params.caseId);
+      if (!caseRecord) return sendError(res, 'CASE_NOT_FOUND', 'Case not found', 404);
+      if (!canViewCase(req.user, caseRecord)) return sendError(res, 'FORBIDDEN', 'Access denied', 403);
+      const comments = await CaseComment.find({ caseId: req.params.caseId }).sort({ createdAt: 1 });
+      return sendSuccess(res, comments);
+    } catch (err) { return next(err); }
+  },
+
+  async addComment(req, res, next) {
+    try {
+      const CaseComment = require('../models/mongo/caseComment.schema');
+      const { content } = req.body;
+      if (!content?.trim()) return sendError(res, 'VALIDATION', 'Comment content is required', 400);
+      const caseRecord = await caseRepository.findById(req.params.caseId);
+      if (!caseRecord) return sendError(res, 'CASE_NOT_FOUND', 'Case not found', 404);
+      if (!canViewCase(req.user, caseRecord)) return sendError(res, 'FORBIDDEN', 'Access denied', 403);
+
+      // Staff can only comment on their own cases
+      if (req.user.role === 'STAFF' && caseRecord.submitterId !== req.user.id) {
+        return sendError(res, 'FORBIDDEN', 'Access denied', 403);
+      }
+
+      const { PrismaClient } = require('@prisma/client');
+      const prisma = new PrismaClient();
+      const userRecord = await prisma.user.findUnique({ where: { id: req.user.id }, select: { fullName: true } });
+      await prisma.$disconnect();
+      const authorName = userRecord?.fullName ?? 'Unknown';
+
+      const comment = await CaseComment.create({
+        caseId: req.params.caseId,
+        authorId: req.user.id,
+        authorName,
+        authorRole: req.user.role,
+        content: content.trim(),
+      });
+      return sendSuccess(res, comment, 201);
+    } catch (err) { return next(err); }
+  },
+
+  async getRating(req, res, next) {
+    try {
+      const CaseRating = require('../models/mongo/caseRating.schema');
+      const rating = await CaseRating.findOne({ caseId: req.params.caseId });
+      return sendSuccess(res, rating);
+    } catch (err) { return next(err); }
+  },
+
+  async submitRating(req, res, next) {
+    try {
+      const CaseRating = require('../models/mongo/caseRating.schema');
+      const { rating, feedback } = req.body;
+      if (!rating || rating < 1 || rating > 5) return sendError(res, 'VALIDATION', 'Rating must be 1–5', 400);
+      const caseRecord = await caseRepository.findById(req.params.caseId);
+      if (!caseRecord) return sendError(res, 'CASE_NOT_FOUND', 'Case not found', 404);
+      if (caseRecord.status !== 'RESOLVED') return sendError(res, 'INVALID_STATE', 'Can only rate resolved cases', 422);
+      if (caseRecord.submitterId !== req.user.id) return sendError(res, 'FORBIDDEN', 'Only the submitter can rate', 403);
+
+      const existing = await CaseRating.findOne({ caseId: req.params.caseId });
+      if (existing) return sendError(res, 'ALREADY_RATED', 'You have already rated this case', 409);
+
+      const newRating = await CaseRating.create({ caseId: req.params.caseId, submitterId: req.user.id, rating: Number(rating), feedback: feedback?.trim() ?? '' });
+      return sendSuccess(res, newRating, 201);
+    } catch (err) { return next(err); }
+  },
+
   async downloadAttachment(req, res, next) {
     try {
       const caseRecord = await caseRepository.findById(req.params.caseId);

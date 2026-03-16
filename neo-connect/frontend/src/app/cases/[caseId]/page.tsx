@@ -7,6 +7,7 @@ import caseService from '@/services/case.service';
 import { CaseDetail } from '@/types/case.types';
 import { User } from '@/types/user.types';
 import CaseTimeline from '@/components/CaseTimeline';
+import CaseProgressStepper from '@/components/CaseProgressStepper';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
@@ -19,6 +20,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { STATUS_COLORS, SEVERITY_COLORS, ROLES } from '@/utils/constants';
 import { formatDate, formatDateTime } from '@/utils/formatDate';
+import { getResolutionEstimate } from '@/utils/resolutionEstimate';
 import { cn } from '@/lib/utils';
 import api from '@/services/api';
 import AppShell from '@/components/AppShell';
@@ -53,9 +55,26 @@ export default function CaseDetailPage() {
   const { toast } = useToast();
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
 
+  // Feature 2: Withdraw
+  const [withdrawing, setWithdrawing] = useState(false);
+
+  // Feature 3: Comments
+  const [comments, setComments] = useState<Array<{_id: string; authorName: string; authorRole: string; content: string; createdAt: string}>>([]);
+  const [commentText, setCommentText] = useState('');
+  const [submittingComment, setSubmittingComment] = useState(false);
+
+  // Feature 4: Rating
+  const [existingRating, setExistingRating] = useState<{rating: number; feedback: string} | null>(null);
+  const [hoverRating, setHoverRating] = useState(0);
+  const [selectedRating, setSelectedRating] = useState(0);
+  const [ratingFeedback, setRatingFeedback] = useState('');
+  const [submittingRating, setSubmittingRating] = useState(false);
+
   const isSecretariat = user?.role === ROLES.SECRETARIAT;
   const isCaseManager = user?.role === ROLES.CASE_MANAGER;
   const isAssignedManager = isCaseManager && caseDetail?.assignment?.managerId === user?.id;
+  const isStaff = user?.role === ROLES.STAFF;
+  const isOwner = isStaff && caseDetail?.submitterId === user?.id;
 
   useEffect(() => {
     if (!isAuthenticated()) {
@@ -73,6 +92,14 @@ export default function CaseDetailPage() {
     }
   }, [isSecretariat]);
 
+  // Feature 3: Load comments
+  useEffect(() => {
+    if (!caseId) return;
+    api.get(`/cases/${caseId}/comments`)
+      .then(res => setComments(res.data.data ?? []))
+      .catch(() => {});
+  }, [caseId]);
+
   const loadCase = async () => {
     setLoading(true);
     setError('');
@@ -80,6 +107,13 @@ export default function CaseDetailPage() {
       const data = await caseService.getCaseById(caseId);
       setCaseDetail(data);
       if (data.status) setNewStatus(data.status);
+
+      // Feature 4: Load rating if resolved
+      if (data.status === 'RESOLVED') {
+        api.get(`/cases/${caseId}/rating`)
+          .then(res => setExistingRating(res.data.data))
+          .catch(() => {});
+      }
     } catch {
       setError('Case not found or you do not have permission to view it.');
     } finally {
@@ -127,6 +161,54 @@ export default function CaseDetailPage() {
       toast({ title: 'Update failed', description: msg, variant: 'destructive' });
     } finally {
       setUpdatingStatus(false);
+    }
+  };
+
+  // Feature 2: Withdraw handler
+  const handleWithdraw = async () => {
+    if (!confirm('Are you sure you want to withdraw this case? This cannot be undone.')) return;
+    setWithdrawing(true);
+    try {
+      await api.patch(`/cases/${caseId}/withdraw`);
+      toast({ title: 'Case withdrawn', description: 'Your case has been withdrawn.' });
+      router.push('/cases');
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { message?: string } } };
+      toast({ title: 'Failed', description: axiosErr?.response?.data?.message ?? 'Could not withdraw case.', variant: 'destructive' });
+    } finally {
+      setWithdrawing(false);
+    }
+  };
+
+  // Feature 3: Add comment handler
+  const handleAddComment = async () => {
+    if (!commentText.trim()) return;
+    setSubmittingComment(true);
+    try {
+      const res = await api.post(`/cases/${caseId}/comments`, { content: commentText.trim() });
+      setComments(prev => [...prev, res.data.data]);
+      setCommentText('');
+      toast({ title: 'Comment added' });
+    } catch {
+      toast({ title: 'Failed to add comment', variant: 'destructive' });
+    } finally {
+      setSubmittingComment(false);
+    }
+  };
+
+  // Feature 4: Submit rating handler
+  const handleSubmitRating = async () => {
+    if (!selectedRating) return;
+    setSubmittingRating(true);
+    try {
+      const res = await api.post(`/cases/${caseId}/rating`, { rating: selectedRating, feedback: ratingFeedback });
+      setExistingRating(res.data.data);
+      toast({ title: 'Thank you!', description: 'Your rating has been submitted.' });
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { message?: string } } };
+      toast({ title: 'Rating failed', description: axiosErr?.response?.data?.message ?? 'Could not submit rating.', variant: 'destructive' });
+    } finally {
+      setSubmittingRating(false);
     }
   };
 
@@ -183,10 +265,28 @@ export default function CaseDetailPage() {
                 <span className={cn('inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold', statusColor)}>
                   {caseDetail.status.replace('_', ' ')}
                 </span>
+                {caseDetail.withdrawnAt && (
+                  <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-gray-200 text-gray-700">
+                    WITHDRAWN
+                  </span>
+                )}
               </div>
             </div>
+            {/* Feature 2: Withdraw button */}
+            {isOwner && caseDetail.status === 'NEW' && (
+              <div className="mt-2">
+                <Button variant="destructive" size="sm" onClick={handleWithdraw} disabled={withdrawing}>
+                  {withdrawing ? 'Withdrawing…' : 'Withdraw Case'}
+                </Button>
+              </div>
+            )}
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Feature 1: Progress Stepper */}
+            <div className="border-t pt-3">
+              <CaseProgressStepper currentStatus={caseDetail.status} />
+            </div>
+
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <p className="text-muted-foreground text-xs">Category</p>
@@ -204,6 +304,16 @@ export default function CaseDetailPage() {
                 <p className="text-muted-foreground text-xs">Submitted</p>
                 <p className="font-medium mt-1">{formatDateTime(caseDetail.createdAt)}</p>
               </div>
+              {/* Feature 6: Estimated resolution time */}
+              {!['RESOLVED', 'ESCALATED'].includes(caseDetail.status) && (
+                <div>
+                  <p className="text-muted-foreground text-xs">Est. Resolution</p>
+                  {(() => {
+                    const est = getResolutionEstimate(caseDetail.severity, caseDetail.category);
+                    return <p className={`font-medium mt-1 text-sm ${est.color}`}>{est.label}</p>;
+                  })()}
+                </div>
+              )}
               <div>
                 <p className="text-muted-foreground text-xs">Submitter</p>
                 <p className="font-medium mt-1">
@@ -382,6 +492,88 @@ export default function CaseDetailPage() {
             <CaseTimeline timeline={caseDetail.timeline} />
           </CardContent>
         </Card>
+
+        {/* Feature 3: Follow-up Comments */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Follow-up Comments ({comments.length})</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {comments.length === 0 && (
+              <p className="text-sm text-muted-foreground">No comments yet.</p>
+            )}
+            {comments.map(c => (
+              <div key={c._id} className="border rounded-lg p-3 space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">{c.authorName}</span>
+                  <span className="text-xs text-muted-foreground">{formatDateTime(c.createdAt)}</span>
+                </div>
+                <p className="text-sm text-muted-foreground">{c.authorRole.replace('_', ' ')}</p>
+                <p className="text-sm">{c.content}</p>
+              </div>
+            ))}
+            <div className="space-y-2 border-t pt-3">
+              <Textarea
+                placeholder="Add a follow-up comment…"
+                value={commentText}
+                onChange={e => setCommentText(e.target.value)}
+                rows={2}
+                className="resize-none"
+              />
+              <Button size="sm" onClick={handleAddComment} disabled={submittingComment || !commentText.trim()}>
+                {submittingComment ? 'Posting…' : 'Post Comment'}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Feature 4: Rate Resolution */}
+        {caseDetail.status === 'RESOLVED' && isOwner && (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Rate Resolution</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {existingRating ? (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-1">
+                    {[1,2,3,4,5].map(s => (
+                      <span key={s} className={`text-2xl ${s <= existingRating.rating ? 'text-yellow-400' : 'text-muted'}`}>★</span>
+                    ))}
+                    <span className="text-sm text-muted-foreground ml-2">{existingRating.rating}/5</span>
+                  </div>
+                  {existingRating.feedback && <p className="text-sm text-muted-foreground">"{existingRating.feedback}"</p>}
+                  <p className="text-xs text-muted-foreground">You have already rated this case.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-sm text-muted-foreground">How satisfied are you with the resolution?</p>
+                  <div className="flex items-center gap-1">
+                    {[1,2,3,4,5].map(s => (
+                      <button
+                        key={s}
+                        onClick={() => setSelectedRating(s)}
+                        onMouseEnter={() => setHoverRating(s)}
+                        onMouseLeave={() => setHoverRating(0)}
+                        className={`text-3xl transition-colors ${s <= (hoverRating || selectedRating) ? 'text-yellow-400' : 'text-muted-foreground'}`}
+                      >★</button>
+                    ))}
+                  </div>
+                  <Textarea
+                    placeholder="Optional feedback…"
+                    value={ratingFeedback}
+                    onChange={e => setRatingFeedback(e.target.value)}
+                    rows={2}
+                    className="resize-none"
+                  />
+                  <Button size="sm" onClick={handleSubmitRating} disabled={!selectedRating || submittingRating}>
+                    {submittingRating ? 'Submitting…' : 'Submit Rating'}
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
       </div>
     </AppShell>

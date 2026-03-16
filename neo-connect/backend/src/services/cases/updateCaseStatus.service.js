@@ -8,6 +8,7 @@ const { canUpdateStatus } = require('../../domain/case/case.permissions');
 const { isResolved } = require('../../domain/case/case.rules');
 const { removeEscalationJob } = require('../../queues/escalation.queue');
 const logger = require('../../utils/logger');
+const { sendStatusUpdateEmail } = require('../email.service');
 
 const updateCaseStatusService = async ({ caseId, newStatus, note, updatedById }) => {
   const caseRecord = await caseRepository.findById(caseId);
@@ -59,6 +60,30 @@ const updateCaseStatusService = async ({ caseId, newStatus, note, updatedById })
     } catch (err) {
       logger.warn(`Could not cancel escalation job for case ${caseId}: ${err.message}`);
     }
+  }
+
+  // Send email notification to submitter
+  try {
+    const { PrismaClient: PrismaClient2 } = require('@prisma/client');
+    const prisma2 = new PrismaClient2();
+    if (caseRecord.submitterId && !caseRecord.isAnonymous) {
+      const submitter = await prisma2.user.findUnique({ where: { id: caseRecord.submitterId }, select: { email: true, fullName: true } });
+      const caseWithTracking = await prisma2.case.findUnique({ where: { id: caseId }, select: { trackingId: true } });
+      if (submitter) {
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+        await sendStatusUpdateEmail({
+          toEmail: submitter.email,
+          toName: submitter.fullName,
+          trackingId: caseWithTracking.trackingId,
+          newStatus,
+          note,
+          caseUrl: `${frontendUrl}/cases/${caseId}`,
+        });
+      }
+    }
+    await prisma2.$disconnect();
+  } catch (emailErr) {
+    logger.warn(`Email notification failed: ${emailErr.message}`);
   }
 
   return { caseId, newStatus };
