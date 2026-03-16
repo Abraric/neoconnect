@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, PlusCircle, FolderOpen, BarChart3,
-  Globe, Vote, Users, ClipboardList,
+  Globe, Vote, Users, ClipboardList, Megaphone, Target,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
@@ -24,6 +24,8 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/analytics', label: 'Analytics', icon: <BarChart3 className="h-4 w-4" />, roles: ['SECRETARIAT', 'CASE_MANAGER', 'ADMIN'] },
   { href: '/admin', label: 'Admin', icon: <Users className="h-4 w-4" />, roles: ['ADMIN'] },
   { href: '/audit-log', label: 'Audit Log', icon: <ClipboardList className="h-4 w-4" />, roles: ['ADMIN'] },
+  { href: '/announcements', label: 'Announcements', icon: <Megaphone className="h-4 w-4" />, roles: ['SECRETARIAT', 'ADMIN'] },
+  { href: '/sla-settings', label: 'SLA Settings', icon: <Target className="h-4 w-4" />, roles: ['SECRETARIAT', 'ADMIN'] },
 ];
 
 export default function Sidebar() {

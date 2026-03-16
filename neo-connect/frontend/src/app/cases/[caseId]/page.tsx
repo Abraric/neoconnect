@@ -270,6 +270,26 @@ export default function CaseDetailPage() {
                     WITHDRAWN
                   </span>
                 )}
+                {(caseDetail as { isPriority?: boolean }).isPriority && (
+                  <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold bg-red-100 text-red-700">
+                    URGENT
+                  </span>
+                )}
+                {(isSecretariat || user?.role === 'ADMIN') && (
+                  <Button
+                    size="sm"
+                    variant={(caseDetail as { isPriority?: boolean }).isPriority ? 'destructive' : 'outline'}
+                    onClick={async () => {
+                      try {
+                        const res = await api.patch(`/cases/${caseId}/priority`);
+                        setCaseDetail(prev => prev ? { ...prev, isPriority: res.data.data.isPriority } : prev);
+                        toast({ title: (caseDetail as { isPriority?: boolean }).isPriority ? 'Priority removed' : 'Marked as urgent' });
+                      } catch { toast({ title: 'Failed', variant: 'destructive' }); }
+                    }}
+                  >
+                    {(caseDetail as { isPriority?: boolean }).isPriority ? '★ Urgent' : '☆ Mark Urgent'}
+                  </Button>
+                )}
               </div>
             </div>
             {/* Feature 2: Withdraw button */}

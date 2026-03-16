@@ -20,6 +20,39 @@ const maskSubmitter = (c) => {
 };
 
 const caseController = {
+  async bulkAssign(req, res, next) {
+    try {
+      const { caseIds, managerId } = req.body;
+      if (!Array.isArray(caseIds) || caseIds.length === 0) return sendError(res, 'VALIDATION', 'caseIds must be a non-empty array', 400);
+      if (!managerId) return sendError(res, 'VALIDATION', 'managerId is required', 400);
+      const results = [];
+      for (const caseId of caseIds) {
+        try {
+          await assignCaseService({ caseId, managerId, assignedById: req.user.id });
+          results.push({ caseId, success: true });
+        } catch (err) {
+          results.push({ caseId, success: false, error: err.message });
+        }
+      }
+      return sendSuccess(res, { results, total: caseIds.length, succeeded: results.filter(r => r.success).length });
+    } catch (err) { return next(err); }
+  },
+
+  async togglePriority(req, res, next) {
+    try {
+      const { PrismaClient } = require('@prisma/client');
+      const prisma = new PrismaClient();
+      const caseRecord = await caseRepository.findById(req.params.caseId);
+      if (!caseRecord) return sendError(res, 'CASE_NOT_FOUND', 'Case not found', 404);
+      const updated = await prisma.case.update({
+        where: { id: req.params.caseId },
+        data: { isPriority: !caseRecord.isPriority },
+      });
+      await prisma.$disconnect();
+      return sendSuccess(res, { id: updated.id, isPriority: updated.isPriority });
+    } catch (err) { return next(err); }
+  },
+
   async create(req, res, next) {
     try {
       const { category, departmentId, location, severity, description } = req.body;

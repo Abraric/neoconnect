@@ -9,7 +9,7 @@ import { formatDate } from '@/utils/formatDate';
 import { cn } from '@/lib/utils';
 
 interface CaseCardProps {
-  caseItem: CaseSummary & { location?: string; description?: string };
+  caseItem: CaseSummary & { location?: string; description?: string; isPriority?: boolean };
 }
 
 export default function CaseCard({ caseItem }: CaseCardProps) {
@@ -37,9 +37,16 @@ export default function CaseCard({ caseItem }: CaseCardProps) {
     >
       <CardContent className="p-4 space-y-3">
         <div className="flex items-start justify-between gap-2 flex-wrap">
-          <span className="font-bold text-sm tracking-wide text-foreground">
-            {caseItem.trackingId}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-sm tracking-wide text-foreground">
+              {caseItem.trackingId}
+            </span>
+            {caseItem.isPriority && (
+              <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-bold bg-red-100 text-red-700">
+                URGENT
+              </span>
+            )}
+          </div>
           <div className="flex items-center gap-2 flex-wrap">
             <span className={cn('inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold', severityColor)}>
               {caseItem.severity}

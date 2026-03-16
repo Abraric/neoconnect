@@ -17,6 +17,8 @@ const adminRoutes = require('./routes/admin.routes');
 const departmentRoutes = require('./routes/department.routes');
 const usersRoutes = require('./routes/users.routes');
 const auditLogRoutes = require('./routes/auditLog.routes');
+const announcementRoutes = require('./routes/announcement.routes');
+const slaRoutes = require('./routes/sla.routes');
 
 const app = express();
 
@@ -44,6 +46,8 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/departments', departmentRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/audit-logs', auditLogRoutes);
+app.use('/api/announcements', announcementRoutes);
+app.use('/api/sla', slaRoutes);
 
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 

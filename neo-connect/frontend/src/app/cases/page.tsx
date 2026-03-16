@@ -7,10 +7,13 @@ import caseService, { CaseFilters, PaginatedCases } from '@/services/case.servic
 import CaseCard from '@/components/CaseCard';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { ROLES, CASE_STATUS } from '@/utils/constants';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import AppShell from '@/components/AppShell';
+import api from '@/services/api';
+import { useToast } from '@/hooks/use-toast';
 
 const CATEGORIES = ['SAFETY', 'POLICY', 'FACILITIES', 'HR', 'OTHER'];
 const SEVERITIES = ['LOW', 'MEDIUM', 'HIGH'];
@@ -20,6 +23,7 @@ const PAGE_SIZE = 10;
 export default function CasesPage() {
   const router = useRouter();
   const { user, isAuthenticated } = useAuthStore();
+  const { toast } = useToast();
 
   const [status, setStatus] = useState('');
   const [category, setCategory] = useState('');
@@ -29,6 +33,15 @@ export default function CasesPage() {
   const [result, setResult] = useState<PaginatedCases | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  // Bulk assign state
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [bulkManagerId, setBulkManagerId] = useState('');
+  const [bulkManagers, setBulkManagers] = useState<Array<{ id: string; fullName: string }>>([]);
+  const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
+  const [bulkAssigning, setBulkAssigning] = useState(false);
+
+  const isSecretariatOrAdmin = user?.role === ROLES.SECRETARIAT || user?.role === 'ADMIN';
 
   const fetchCases = useCallback(async () => {
     setLoading(true);
@@ -55,8 +68,32 @@ export default function CasesPage() {
     fetchCases();
   }, [fetchCases]);
 
+  useEffect(() => {
+    if (isSecretariatOrAdmin) {
+      api.get('/users/case-managers').then(r => setBulkManagers(r.data.data ?? [])).catch(() => {});
+    }
+  }, [isSecretariatOrAdmin]);
+
   const handleFilterChange = () => {
     setPage(1);
+  };
+
+  const handleBulkAssign = async () => {
+    if (!bulkManagerId) return;
+    setBulkAssigning(true);
+    try {
+      const res = await api.post('/cases/bulk-assign', { caseIds: selectedIds, managerId: bulkManagerId });
+      const { succeeded, total } = res.data.data;
+      toast({ title: `Assigned ${succeeded}/${total} cases successfully` });
+      setSelectedIds([]);
+      setBulkManagerId('');
+      setBulkDialogOpen(false);
+      fetchCases();
+    } catch {
+      toast({ title: 'Bulk assign failed', variant: 'destructive' });
+    } finally {
+      setBulkAssigning(false);
+    }
   };
 
   const totalPages = result ? Math.ceil(result.pagination.total / PAGE_SIZE) : 0;
@@ -176,9 +213,28 @@ export default function CasesPage() {
 
         {!loading && !error && result && result.data.length > 0 && (
           <div className="space-y-3">
-            {result.data.map(c => (
-              <CaseCard key={c.id} caseItem={c} />
-            ))}
+            {isSecretariatOrAdmin ? (
+              result.data.map(c => (
+                <div key={c.id} className="flex items-start gap-2">
+                  {c.status === 'NEW' && (
+                    <input
+                      type="checkbox"
+                      className="mt-4 h-4 w-4 accent-primary cursor-pointer"
+                      checked={selectedIds.includes(c.id)}
+                      onChange={e => {
+                        setSelectedIds(prev => e.target.checked ? [...prev, c.id] : prev.filter(id => id !== c.id));
+                      }}
+                    />
+                  )}
+                  {c.status !== 'NEW' && <div className="w-4" />}
+                  <div className="flex-1"><CaseCard caseItem={c} /></div>
+                </div>
+              ))
+            ) : (
+              result.data.map(c => (
+                <CaseCard key={c.id} caseItem={c} />
+              ))
+            )}
           </div>
         )}
 
@@ -207,6 +263,46 @@ export default function CasesPage() {
         )}
 
       </div>
+
+      {/* Bulk assign floating bar */}
+      {selectedIds.length > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-background border rounded-xl shadow-xl px-6 py-3 flex items-center gap-4">
+          <span className="text-sm font-medium">{selectedIds.length} case{selectedIds.length > 1 ? 's' : ''} selected</span>
+          <Button size="sm" onClick={() => setBulkDialogOpen(true)}>Assign to Manager</Button>
+          <Button size="sm" variant="outline" onClick={() => setSelectedIds([])}>Clear</Button>
+        </div>
+      )}
+
+      {/* Bulk assign dialog */}
+      <Dialog open={bulkDialogOpen} onOpenChange={open => { setBulkDialogOpen(open); if (!open) setBulkManagerId(''); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Bulk Assign {selectedIds.length} Case{selectedIds.length > 1 ? 's' : ''}</DialogTitle>
+          </DialogHeader>
+          <div className="py-2">
+            {bulkManagers.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No case managers available.</p>
+            ) : (
+              <Select value={bulkManagerId} onValueChange={setBulkManagerId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a case manager…" />
+                </SelectTrigger>
+                <SelectContent>
+                  {bulkManagers.map(m => (
+                    <SelectItem key={m.id} value={m.id}>{m.fullName}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBulkDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleBulkAssign} disabled={bulkAssigning || !bulkManagerId}>
+              {bulkAssigning ? 'Assigning…' : 'Confirm Assign'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppShell>
   );
 }

@@ -8,5 +8,7 @@ const router = Router();
 router.use(authenticate);
 router.use(requireRole(ROLES.SECRETARIAT, ROLES.ADMIN, ROLES.CASE_MANAGER));
 router.get('/dashboard', analyticsController.getDashboard);
+router.get('/export', analyticsController.exportCases);
+router.get('/departments', analyticsController.getDepartmentPerformance);
 
 module.exports = router;

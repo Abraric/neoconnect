@@ -91,6 +91,7 @@ model Case {
   escalatedAt DateTime?
   resolvedAt  DateTime?
   withdrawnAt DateTime?
+  isPriority  Boolean      @default(false)
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 

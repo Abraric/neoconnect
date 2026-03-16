@@ -26,7 +26,9 @@
       "Bash(curl -s https://neoconnect-api-ghz4.onrender.com/api/auth/login -X POST -H \"Content-Type: application/json\" -d \"{\"\"email\"\":\"\"admin@neoconnect.com\"\",\"\"password\"\":\"\"Admin@123\"\"}\")",
       "Bash(curl -s --max-time 30 https://neoconnect-api-ghz4.onrender.com/health)",
       "Bash(curl -s --max-time 15 https://neoconnect-api-ghz4.onrender.com/api/auth/login -X POST -H \"Content-Type: application/json\" -d \"{\"\"email\"\":\"\"admin@neoconnect.com\"\",\"\"password\"\":\"\"Admin@123\"\"}\")",
-      "Bash(npx prisma:*)"
+      "Bash(npx prisma:*)",
+      "Bash(node -e \"const { PrismaClient } = require\\(''@prisma/client''\\); const p = new PrismaClient\\(\\); console.log\\(''Prisma client loads OK''\\); p.$disconnect\\(\\);\")",
+      "Bash(node -e \"const { PrismaClient } = require\\(''@prisma/client''\\); const p = new PrismaClient\\(\\); console.log\\(''Prisma client loads OK''\\); p[''$disconnect'']\\(\\);\")"
     ],
     "additionalDirectories": [
       "C:\\Users\\abrar\\OneDrive\\Desktop\\Neostat\\neo-connect\\frontend\\src\\app\\cases"
