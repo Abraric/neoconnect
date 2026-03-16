@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, PlusCircle, FolderOpen, BarChart3,
-  Globe, Vote, Users, ClipboardList, Megaphone, Target, Briefcase,
+  Globe, Vote, Users, ClipboardList, Megaphone, Target, Briefcase, Activity,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
@@ -25,15 +25,16 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/analytics',    label: 'Analytics',    icon: <BarChart3 className="h-4 w-4" />,        roles: ['SECRETARIAT', 'CASE_MANAGER', 'ADMIN'] },
   { href: '/announcements',label: 'Announcements',icon: <Megaphone className="h-4 w-4" />,        roles: ['SECRETARIAT', 'ADMIN'] },
   { href: '/sla-settings', label: 'SLA Settings', icon: <Target className="h-4 w-4" />,           roles: ['SECRETARIAT', 'ADMIN'] },
-  { href: '/admin',        label: 'Admin',        icon: <Users className="h-4 w-4" />,            roles: ['ADMIN'] },
-  { href: '/audit-log',    label: 'Audit Log',    icon: <ClipboardList className="h-4 w-4" />,    roles: ['ADMIN'] },
+  { href: '/admin',         label: 'Admin',         icon: <Users className="h-4 w-4" />,         roles: ['ADMIN'] },
+  { href: '/audit-log',    label: 'Audit Log',     icon: <ClipboardList className="h-4 w-4" />, roles: ['ADMIN'] },
+  { href: '/system-health',label: 'System Health', icon: <Activity className="h-4 w-4" />,      roles: ['ADMIN'] },
 ];
 
 // Group nav items visually
 const NAV_GROUPS = [
   { label: null, items: ['dashboard', 'submit-case', 'cases', 'polls', 'public-hub'] },
   { label: 'Management', items: ['workload', 'analytics', 'announcements', 'sla-settings'] },
-  { label: 'System', items: ['admin', 'audit-log'] },
+  { label: 'System', items: ['admin', 'audit-log', 'system-health'] },
 ];
 
 export default function Sidebar() {

@@ -137,41 +137,64 @@ const adminController = {
 
   async getSystemHealth(req, res, next) {
     try {
-      const startTime = process.uptime();
+      const t0Api = Date.now();
       const memUsage = process.memoryUsage();
 
-      // Check PostgreSQL
-      let pgStatus = 'ok';
-      let pgLatencyMs = null;
+      // PostgreSQL
+      let pgStatus = 'ok', pgLatency = null;
       try {
-        const t0 = Date.now();
-        await prisma.$queryRaw`SELECT 1`;
-        pgLatencyMs = Date.now() - t0;
-      } catch {
-        pgStatus = 'error';
-      }
+        const t = Date.now(); await prisma.$queryRaw`SELECT 1`; pgLatency = Date.now() - t;
+      } catch { pgStatus = 'error'; }
 
-      // Check MongoDB
-      let mongoStatus = 'ok';
-      let mongoLatencyMs = null;
+      // MongoDB
+      let mongoStatus = 'ok', mongoLatency = null;
       try {
-        const t0 = Date.now();
-        await mongoose.connection.db.admin().ping();
-        mongoLatencyMs = Date.now() - t0;
-      } catch {
-        mongoStatus = 'error';
-      }
+        const t = Date.now(); await mongoose.connection.db.admin().ping(); mongoLatency = Date.now() - t;
+      } catch { mongoStatus = 'error'; }
+
+      // Redis
+      let redisStatus = 'ok', redisLatency = null, redisMemMb = null, redisClients = null;
+      try {
+        const { getRedisClient } = require('../config/redis.config');
+        const redis = getRedisClient();
+        const t = Date.now(); await redis.ping(); redisLatency = Date.now() - t;
+        const info = await redis.info('memory');
+        const memMatch = info.match(/used_memory:(\d+)/);
+        if (memMatch) redisMemMb = Math.round(Number(memMatch[1]) / 1024 / 1024 * 10) / 10;
+        const clientsInfo = await redis.info('clients');
+        const clientsMatch = clientsInfo.match(/connected_clients:(\d+)/);
+        if (clientsMatch) redisClients = Number(clientsMatch[1]);
+      } catch { redisStatus = 'error'; }
+
+      // JWT
+      let jwtStatus = 'ok', jwtLatency = null;
+      try {
+        const jwt = require('jsonwebtoken');
+        const secret = process.env.JWT_SECRET || 'secret';
+        const t = Date.now();
+        const token = jwt.sign({ sub: 'health-check' }, secret, { expiresIn: '1m' });
+        jwt.verify(token, secret);
+        jwtLatency = Date.now() - t;
+      } catch { jwtStatus = 'error'; }
+
+      const apiLatency = Date.now() - t0Api;
 
       return sendSuccess(res, {
-        api: { status: 'ok', uptimeSeconds: Math.round(startTime) },
-        postgresql: { status: pgStatus, latencyMs: pgLatencyMs },
-        mongodb: { status: mongoStatus, latencyMs: mongoLatencyMs },
-        memory: {
-          heapUsedMB: Math.round(memUsage.heapUsed / 1024 / 1024),
-          heapTotalMB: Math.round(memUsage.heapTotal / 1024 / 1024),
-          rssMB: Math.round(memUsage.rss / 1024 / 1024),
+        api: {
+          status: 'ok',
+          latencyMs: apiLatency,
+          uptimeSeconds: Math.round(process.uptime()),
+          nodeVersion: process.version,
+          memory: {
+            heapUsedMB: Math.round(memUsage.heapUsed / 1024 / 1024),
+            heapTotalMB: Math.round(memUsage.heapTotal / 1024 / 1024),
+            rssMB: Math.round(memUsage.rss / 1024 / 1024),
+          },
         },
-        nodeVersion: process.version,
+        postgresql: { status: pgStatus, latencyMs: pgLatency },
+        mongodb:    { status: mongoStatus, latencyMs: mongoLatency },
+        redis:      { status: redisStatus, latencyMs: redisLatency, usedMemoryMb: redisMemMb, connectedClients: redisClients },
+        jwt:        { status: jwtStatus, latencyMs: jwtLatency },
         checkedAt: new Date().toISOString(),
       });
     } catch (err) { return next(err); }
