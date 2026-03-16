@@ -246,6 +246,174 @@ const caseController = {
     } catch (err) { return next(err); }
   },
 
+  async getInternalNotes(req, res, next) {
+    try {
+      const CaseInternalNote = require('../models/mongo/caseInternalNote.schema');
+      const caseRecord = await caseRepository.findById(req.params.caseId);
+      if (!caseRecord) return sendError(res, 'CASE_NOT_FOUND', 'Case not found', 404);
+      const notes = await CaseInternalNote.find({ caseId: req.params.caseId }).sort({ createdAt: 1 });
+      return sendSuccess(res, notes);
+    } catch (err) { return next(err); }
+  },
+
+  async addInternalNote(req, res, next) {
+    try {
+      const CaseInternalNote = require('../models/mongo/caseInternalNote.schema');
+      const { content } = req.body;
+      if (!content?.trim()) return sendError(res, 'VALIDATION', 'Note content is required', 400);
+      const caseRecord = await caseRepository.findById(req.params.caseId);
+      if (!caseRecord) return sendError(res, 'CASE_NOT_FOUND', 'Case not found', 404);
+
+      const { PrismaClient } = require('@prisma/client');
+      const prisma = new PrismaClient();
+      const userRecord = await prisma.user.findUnique({ where: { id: req.user.id }, select: { fullName: true } });
+      await prisma.$disconnect();
+
+      const note = await CaseInternalNote.create({
+        caseId: req.params.caseId,
+        authorId: req.user.id,
+        authorName: userRecord?.fullName ?? 'Unknown',
+        authorRole: req.user.role,
+        content: content.trim(),
+      });
+      return sendSuccess(res, note, 201);
+    } catch (err) { return next(err); }
+  },
+
+  async requestMoreInfo(req, res, next) {
+    try {
+      const { message } = req.body;
+      if (!message?.trim()) return sendError(res, 'VALIDATION', 'Message is required', 400);
+      const caseRecord = await caseRepository.findById(req.params.caseId);
+      if (!caseRecord) return sendError(res, 'CASE_NOT_FOUND', 'Case not found', 404);
+      if (!caseRecord.submitterId) return sendError(res, 'ANONYMOUS', 'Cannot request info on anonymous case', 422);
+
+      const { PrismaClient } = require('@prisma/client');
+      const prisma = new PrismaClient();
+      await prisma.notification.create({
+        data: {
+          recipientId: caseRecord.submitterId,
+          type: 'INFO_REQUESTED',
+          message: `[${caseRecord.trackingId}] More info requested: ${message.trim()}`,
+          caseId: caseRecord.id,
+        },
+      });
+      await prisma.$disconnect();
+      return sendSuccess(res, { message: 'Info request sent to submitter' });
+    } catch (err) { return next(err); }
+  },
+
+  async reassign(req, res, next) {
+    try {
+      const { newManagerId, reason } = req.body;
+      if (!newManagerId) return sendError(res, 'VALIDATION', 'newManagerId is required', 400);
+      const caseRecord = await caseRepository.findById(req.params.caseId);
+      if (!caseRecord) return sendError(res, 'CASE_NOT_FOUND', 'Case not found', 404);
+
+      // Only assigned manager or secretariat/admin can reassign
+      const isAssigned = caseRecord.assignments?.[0]?.managerId === req.user.id;
+      if (req.user.role === ROLES.CASE_MANAGER && !isAssigned) {
+        return sendError(res, 'FORBIDDEN', 'You can only reassign cases assigned to you', 403);
+      }
+
+      const result = await require('../services/cases/assignCase.service').assignCaseService({
+        caseId: req.params.caseId,
+        managerId: newManagerId,
+        assignedById: req.user.id,
+      });
+
+      // Log the reassignment reason as an internal note
+      if (reason?.trim()) {
+        const CaseInternalNote = require('../models/mongo/caseInternalNote.schema');
+        const { PrismaClient: PC2 } = require('@prisma/client');
+        const prisma2 = new PC2();
+        const userRecord = await prisma2.user.findUnique({ where: { id: req.user.id }, select: { fullName: true } });
+        await prisma2.$disconnect();
+        await CaseInternalNote.create({
+          caseId: req.params.caseId,
+          authorId: req.user.id,
+          authorName: userRecord?.fullName ?? 'Unknown',
+          authorRole: req.user.role,
+          content: `[Reassignment reason] ${reason.trim()}`,
+        });
+      }
+
+      return sendSuccess(res, result);
+    } catch (err) { return next(err); }
+  },
+
+  async setReminder(req, res, next) {
+    try {
+      const CaseReminder = require('../models/mongo/caseReminder.schema');
+      const { remindAt, note } = req.body;
+      if (!remindAt) return sendError(res, 'VALIDATION', 'remindAt is required', 400);
+      const caseRecord = await caseRepository.findById(req.params.caseId);
+      if (!caseRecord) return sendError(res, 'CASE_NOT_FOUND', 'Case not found', 404);
+
+      const reminder = await CaseReminder.create({
+        caseId: req.params.caseId,
+        caseTrackingId: caseRecord.trackingId,
+        managerId: req.user.id,
+        note: note?.trim() ?? '',
+        remindAt: new Date(remindAt),
+      });
+      return sendSuccess(res, reminder, 201);
+    } catch (err) { return next(err); }
+  },
+
+  async getReminders(req, res, next) {
+    try {
+      const CaseReminder = require('../models/mongo/caseReminder.schema');
+      const reminders = await CaseReminder.find({ managerId: req.user.id, isDone: false }).sort({ remindAt: 1 });
+      return sendSuccess(res, reminders);
+    } catch (err) { return next(err); }
+  },
+
+  async doneReminder(req, res, next) {
+    try {
+      const CaseReminder = require('../models/mongo/caseReminder.schema');
+      const reminder = await CaseReminder.findOneAndUpdate(
+        { _id: req.params.reminderId, managerId: req.user.id },
+        { isDone: true },
+        { new: true }
+      );
+      if (!reminder) return sendError(res, 'NOT_FOUND', 'Reminder not found', 404);
+      return sendSuccess(res, reminder);
+    } catch (err) { return next(err); }
+  },
+
+  async workloadSummary(req, res, next) {
+    try {
+      const { PrismaClient } = require('@prisma/client');
+      const prisma = new PrismaClient();
+      const managerId = req.user.id;
+
+      const now = new Date();
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+      const [openCases, closedThisMonth, escalatedThisMonth, allAssigned] = await Promise.all([
+        prisma.case.count({
+          where: { assignments: { some: { managerId, isActive: true } }, status: { in: ['ASSIGNED', 'IN_PROGRESS', 'PENDING'] } },
+        }),
+        prisma.case.count({
+          where: { assignments: { some: { managerId } }, status: 'RESOLVED', resolvedAt: { gte: monthStart } },
+        }),
+        prisma.case.count({
+          where: { assignments: { some: { managerId } }, status: 'ESCALATED', escalatedAt: { gte: monthStart } },
+        }),
+        prisma.case.findMany({
+          where: { assignments: { some: { managerId, isActive: true } } },
+          select: { id: true, trackingId: true, status: true, severity: true, category: true, createdAt: true, isPriority: true },
+          orderBy: [{ isPriority: 'desc' }, { createdAt: 'asc' }],
+          take: 20,
+        }),
+      ]);
+
+      await prisma.$disconnect();
+      return sendSuccess(res, { openCases, closedThisMonth, escalatedThisMonth, activeCases: allAssigned });
+    } catch (err) { return next(err); }
+  },
+
   async downloadAttachment(req, res, next) {
     try {
       const caseRecord = await caseRepository.findById(req.params.caseId);

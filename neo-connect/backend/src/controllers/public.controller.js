@@ -5,16 +5,21 @@ const { sendSuccess, sendError } = require('../utils/response');
 const { getPagination, buildPaginatedResponse } = require('../utils/pagination');
 
 const publicController = {
-  async getDigest(req, res, next) {
+  async getDigest(_req, res, next) {
     try {
-      const { page, limit, skip } = getPagination(req.query);
-      const where = {};
-      if (req.query.quarter) where.quarter = req.query.quarter;
-      const [data, total] = await Promise.all([
-        prisma.impactRecord.findMany({ where, orderBy: { createdAt: 'desc' }, skip, take: limit }),
-        prisma.impactRecord.count({ where }),
-      ]);
-      return sendSuccess(res, buildPaginatedResponse(data, total, page, limit));
+      const rows = await prisma.$queryRaw`
+        SELECT
+          CONCAT('Q', EXTRACT(QUARTER FROM "createdAt")::int, ' ', EXTRACT(YEAR FROM "createdAt")::int) AS quarter,
+          category,
+          COUNT(*)::int                                                         AS total,
+          COUNT(CASE WHEN status = 'RESOLVED'  THEN 1 END)::int                AS resolved,
+          COUNT(CASE WHEN status = 'ESCALATED' THEN 1 END)::int                AS escalated,
+          COUNT(CASE WHEN status NOT IN ('RESOLVED','ESCALATED','WITHDRAWN') THEN 1 END)::int AS open
+        FROM "Case"
+        GROUP BY quarter, category
+        ORDER BY MAX("createdAt") DESC, category ASC
+      `;
+      return sendSuccess(res, rows);
     } catch (err) { return next(err); }
   },
 

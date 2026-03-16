@@ -25,6 +25,10 @@ const userRepository = {
     return prisma.user.update({ where: { id }, data: { isActive: false } });
   },
 
+  async reactivate(id) {
+    return prisma.user.update({ where: { id }, data: { isActive: true } });
+  },
+
   async listAll(filters = {}) {
     return prisma.user.findMany({
       where: filters,

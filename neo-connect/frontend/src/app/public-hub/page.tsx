@@ -11,7 +11,7 @@ import AppShell from '@/components/AppShell';
 
 type Tab = 'digest' | 'impact' | 'minutes';
 
-interface DigestRow { id: string; quarter: string; category: string; outcomesSummary: string; count: number; }
+interface DigestRow { quarter: string; category: string; total: number; resolved: number; escalated: number; open: number; }
 interface ImpactRow { id: string; issueRaised: string; actionTaken: string; outcomeChange: string; quarter: string; }
 interface MinutesRow { id: string; title: string; quarter: string; uploadedAt: string; }
 
@@ -140,35 +140,81 @@ export default function PublicHubPage() {
 
       {/* Quarterly Digest */}
       {activeTab === 'digest' && (
-        <div>
+        <div className="space-y-6">
+          <p className="text-sm text-muted-foreground">
+            Auto-generated from all submitted cases. Shows how many cases were raised, resolved, and escalated per category each quarter.
+          </p>
           {digestLoading && <p className="text-sm text-gray-500">Loading…</p>}
           {digestError && <p className="text-sm text-red-500">{digestError}</p>}
-          {!digestLoading && !digestError && (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm border-collapse">
-                <thead>
-                  <tr className="bg-gray-50 text-left">
-                    <th className="p-3 font-semibold border-b">Quarter</th>
-                    <th className="p-3 font-semibold border-b">Category</th>
-                    <th className="p-3 font-semibold border-b">Outcomes Summary</th>
-                    <th className="p-3 font-semibold border-b text-right">Count</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {digest.length === 0 ? (
-                    <tr><td colSpan={4} className="p-3 text-gray-500">No data.</td></tr>
-                  ) : digest.map(row => (
-                    <tr key={row.id} className="border-b hover:bg-gray-50">
-                      <td className="p-3">{row.quarter}</td>
-                      <td className="p-3">{row.category}</td>
-                      <td className="p-3">{row.outcomesSummary}</td>
-                      <td className="p-3 text-right">{row.count}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+          {!digestLoading && !digestError && digest.length === 0 && (
+            <p className="text-sm text-gray-500">No cases submitted yet — the digest will populate automatically as cases are created.</p>
           )}
+          {!digestLoading && !digestError && digest.length > 0 && (() => {
+            // Group rows by quarter
+            const byQuarter: Record<string, DigestRow[]> = {};
+            for (const row of digest) {
+              if (!byQuarter[row.quarter]) byQuarter[row.quarter] = [];
+              byQuarter[row.quarter].push(row);
+            }
+            return Object.entries(byQuarter).map(([quarter, rows]) => {
+              const totals = rows.reduce((acc, r) => ({
+                total: acc.total + r.total,
+                resolved: acc.resolved + r.resolved,
+                escalated: acc.escalated + r.escalated,
+                open: acc.open + r.open,
+              }), { total: 0, resolved: 0, escalated: 0, open: 0 });
+
+              return (
+                <div key={quarter} className="border rounded-lg overflow-hidden">
+                  {/* Quarter header */}
+                  <div className="bg-muted px-4 py-3 flex items-center justify-between flex-wrap gap-2">
+                    <h2 className="font-semibold text-base">{quarter}</h2>
+                    <div className="flex items-center gap-3 text-sm">
+                      <span className="text-muted-foreground">{totals.total} total</span>
+                      <span className="text-green-600 font-medium">{totals.resolved} resolved</span>
+                      <span className="text-red-600 font-medium">{totals.escalated} escalated</span>
+                      <span className="text-yellow-600 font-medium">{totals.open} open</span>
+                    </div>
+                  </div>
+                  {/* Category breakdown */}
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b text-left text-muted-foreground text-xs uppercase tracking-wide">
+                        <th className="px-4 py-2 font-medium">Category</th>
+                        <th className="px-4 py-2 font-medium text-right">Total</th>
+                        <th className="px-4 py-2 font-medium text-right">Resolved</th>
+                        <th className="px-4 py-2 font-medium text-right">Escalated</th>
+                        <th className="px-4 py-2 font-medium text-right">Open</th>
+                        <th className="px-4 py-2 font-medium text-right">Resolution %</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rows.map(row => {
+                        const pct = row.total > 0 ? Math.round((row.resolved / row.total) * 100) : 0;
+                        return (
+                          <tr key={row.category} className="border-b last:border-0 hover:bg-muted/40">
+                            <td className="px-4 py-2.5 font-medium">{row.category}</td>
+                            <td className="px-4 py-2.5 text-right">{row.total}</td>
+                            <td className="px-4 py-2.5 text-right text-green-600 font-medium">{row.resolved}</td>
+                            <td className="px-4 py-2.5 text-right text-red-600 font-medium">{row.escalated}</td>
+                            <td className="px-4 py-2.5 text-right text-yellow-600 font-medium">{row.open}</td>
+                            <td className="px-4 py-2.5 text-right">
+                              <div className="flex items-center justify-end gap-2">
+                                <div className="w-16 bg-muted rounded-full h-1.5">
+                                  <div className="bg-green-500 h-1.5 rounded-full" style={{ width: `${pct}%` }} />
+                                </div>
+                                <span className="text-xs font-medium w-8 text-right">{pct}%</span>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              );
+            });
+          })()}
         </div>
       )}
 

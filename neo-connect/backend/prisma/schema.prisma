@@ -43,11 +43,14 @@ enum NotificationType {
   ESCALATION_REMINDER
   ESCALATION_ALERT
   POLL_CREATED
+  INFO_REQUESTED
+  ANNOUNCEMENT
 }
 
 model Department {
   id        String   @id @default(uuid())
   name      String   @unique
+  isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   users     User[]
   cases     Case[]
