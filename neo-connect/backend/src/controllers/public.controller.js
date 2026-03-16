@@ -9,15 +9,15 @@ const publicController = {
     try {
       const rows = await prisma.$queryRaw`
         SELECT
-          CONCAT('Q', EXTRACT(QUARTER FROM "createdAt")::int, ' ', EXTRACT(YEAR FROM "createdAt")::int) AS quarter,
+          'Q' || EXTRACT(QUARTER FROM "createdAt")::int || ' ' || EXTRACT(YEAR FROM "createdAt")::int AS quarter,
           category,
-          COUNT(*)::int                                                         AS total,
-          COUNT(CASE WHEN status = 'RESOLVED'  THEN 1 END)::int                AS resolved,
-          COUNT(CASE WHEN status = 'ESCALATED' THEN 1 END)::int                AS escalated,
-          COUNT(CASE WHEN status NOT IN ('RESOLVED','ESCALATED','WITHDRAWN') THEN 1 END)::int AS open
+          COUNT(*)::int                                                                        AS total,
+          SUM(CASE WHEN status = 'RESOLVED'  THEN 1 ELSE 0 END)::int                         AS resolved,
+          SUM(CASE WHEN status = 'ESCALATED' THEN 1 ELSE 0 END)::int                         AS escalated,
+          SUM(CASE WHEN status NOT IN ('RESOLVED','ESCALATED') THEN 1 ELSE 0 END)::int       AS open
         FROM "Case"
-        GROUP BY quarter, category
-        ORDER BY MAX("createdAt") DESC, category ASC
+        GROUP BY EXTRACT(QUARTER FROM "createdAt"), EXTRACT(YEAR FROM "createdAt"), category
+        ORDER BY EXTRACT(YEAR FROM "createdAt") DESC, EXTRACT(QUARTER FROM "createdAt") DESC, category ASC
       `;
       return sendSuccess(res, rows);
     } catch (err) { return next(err); }
